@@ -1,0 +1,6 @@
+// This has extra lines after last eqn
+eqn: a=b
+eqn: b=a*2
+eqn: c=a+b
+
+

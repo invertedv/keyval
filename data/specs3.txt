@@ -1,0 +1,4 @@
+// This has EOF on last eqn
+eqn: a=b
+eqn: b=a*2
+eqn: c=a+b
