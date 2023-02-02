@@ -252,7 +252,7 @@ func ReadKeyVal(specFile string) (kv KeyVal, err error) {
 }
 
 // Populate populates all the legal values that valStr can accommodate.  The AsString field is always populated.
-// The BestType is set using the order of precedence described under the DataType comment.
+// The BestType is set using the order of precedence described under the type DataType.
 func Populate(valStr string) *Value {
 	val := &Value{AsString: valStr, BestType: String}
 
