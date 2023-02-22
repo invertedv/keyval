@@ -85,10 +85,6 @@ func (kv KeyVal) Get(key string, want DataType) *Value {
 		return nil
 	}
 
-	if want != val.BestType {
-		return nil
-	}
-
 	return val
 }
 
@@ -198,7 +194,7 @@ func ReadKeyVal(specFile string) (kv KeyVal, err error) {
 			}
 
 			// append and keep reading
-			nextLine = fmt.Sprintf("%s%s", nextLine, line)
+			nextLine = fmt.Sprintf("%s %s", nextLine, line)
 		}
 
 		// split into key and val
