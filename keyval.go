@@ -78,7 +78,7 @@ type Value struct {
 type KeyVal map[string]*Value
 
 // Get returns a value. Nil is returned if the "want" DataType is not a legal type.
-func (kv KeyVal) Get(key string, want DataType) *Value {
+func (kv KeyVal) Get(key string) *Value {
 	val, ok := kv[key]
 
 	if !ok {
