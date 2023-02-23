@@ -135,6 +135,51 @@ func (kv KeyVal) GetMultiple(root string) []*Value {
 	}
 }
 
+// Missing returns a slice of needles that are not keys in kv.
+// needles is a comma-separated list of keys to look for.
+// returns nil if all needles are present.
+func (kv KeyVal) Missing(needles string) (missing []string) {
+	if needles == "" {
+		return nil
+	}
+
+	for _, miss := range strings.Split(needles, ",") {
+		if kv.Get(miss) == nil {
+			missing = append(missing, miss)
+		}
+	}
+
+	return missing
+}
+
+// Unknown returns the keys in kv that are not in universe.
+// universe is a comma-separated string that has the universe of known keys.
+// returns nil if all keys in kv are in universe.
+func (kv KeyVal) Unknown(universe string) (novel []string) {
+	if universe == "" {
+		return nil
+	}
+
+	// remove potential dreck
+	universe = strings.ReplaceAll(strings.ReplaceAll(universe, " ", ""), "\n", "")
+
+	univSlc := strings.Split(universe, ",")
+	for key := range kv {
+		found := false
+		for _, uni := range univSlc {
+			if uni == key {
+				found = true
+				break
+			}
+		}
+		if !found {
+			novel = append(novel, key)
+		}
+	}
+
+	return novel
+}
+
 // ReadKeyVal reads the keyval file and returns the map representation.
 // The Value struct is populated with all legitimate representations of value.
 // The elements of Value are set for all types the value can be converted to.  The AsString field is always populated.

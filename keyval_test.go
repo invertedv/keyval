@@ -7,6 +7,44 @@ import (
 	"testing"
 )
 
+// TestKeyVal_Missing tests the Missing func
+func TestKeyVal_Missing(t *testing.T) {
+	dataPath := os.Getenv("data")
+	fileName := dataPath + "/specs1.txt"
+	expKey := "a,b,X,Y,d"
+	expMiss := []string{"X", "Y"}
+
+	var kv KeyVal
+	var e error
+
+	if kv, e = ReadKeyVal(fileName); e != nil {
+		panic(e)
+	}
+	missing := kv.Missing(expKey)
+	assert.ElementsMatch(t, missing, expMiss)
+
+	expKey = "a,b,d"
+	missing = kv.Missing(expKey)
+	assert.Nil(t, missing)
+}
+
+func TestKeyVal_Unknown(t *testing.T) {
+	dataPath := os.Getenv("data")
+	fileName := dataPath + "/specs1.txt"
+	univ := "a,b,c"
+	expUnk := []string{"d", "e", "f"}
+
+	var kv KeyVal
+	var e error
+
+	if kv, e = ReadKeyVal(fileName); e != nil {
+		panic(e)
+	}
+	unk := kv.Unknown(univ)
+	assert.ElementsMatch(t, unk, expUnk)
+
+}
+
 // TestReadKeyVal tests reading a keyval file.
 func TestReadKeyVal(t *testing.T) {
 	dataPath := os.Getenv("data")
@@ -83,7 +121,7 @@ func ExampleReadKeyVal() {
 	// best:  String
 	//
 	// b
-	// string:  a,b,c,d,e,f
+	// string:  a,b,c, d,e,f
 	// slice:  [a b c d e f]
 	// best:  SliceStr
 	//
