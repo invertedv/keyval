@@ -152,6 +152,22 @@ func (kv KeyVal) Missing(needles string) (missing []string) {
 	return missing
 }
 
+// Present returns the keys in needles that are in kv.
+func (kv KeyVal) Present(needles string) (present []string) {
+	if needles == "" {
+		return nil
+	}
+
+	needles = strings.ReplaceAll(strings.ReplaceAll(needles, " ", ""), "\n", "")
+	for _, ndl := range strings.Split(needles, ",") {
+		if kv.Get(ndl) != nil {
+			present = append(present, ndl)
+		}
+	}
+
+	return present
+}
+
 // Unknown returns the keys in kv that are not in universe.
 // universe is a comma-separated string that has the universe of known keys.
 // returns nil if all keys in kv are in universe.

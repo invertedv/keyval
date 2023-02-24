@@ -2,10 +2,32 @@ package keyval
 
 import (
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"os"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
+
+// TestKeyVal_Present tests the Present func
+func TestKeyVal_Present(t *testing.T) {
+	dataPath := os.Getenv("data")
+	fileName := dataPath + "/specs1.txt"
+	expKey := "a,b,X,Y,d"
+	expPresent := []string{"a", "b", "d"}
+
+	var kv KeyVal
+	var e error
+
+	if kv, e = ReadKeyVal(fileName); e != nil {
+		panic(e)
+	}
+	missing := kv.Present(expKey)
+	assert.ElementsMatch(t, missing, expPresent)
+
+	expKey = "A,X"
+	missing = kv.Present(expKey)
+	assert.Nil(t, missing)
+}
 
 // TestKeyVal_Missing tests the Missing func
 func TestKeyVal_Missing(t *testing.T) {
@@ -42,7 +64,6 @@ func TestKeyVal_Unknown(t *testing.T) {
 	}
 	unk := kv.Unknown(univ)
 	assert.ElementsMatch(t, unk, expUnk)
-
 }
 
 // TestReadKeyVal tests reading a keyval file.
