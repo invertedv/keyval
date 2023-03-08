@@ -171,6 +171,7 @@ func (kv KeyVal) Present(needles string) (present []string) {
 // Unknown returns the keys in kv that are not in universe.
 // universe is a comma-separated string that has the universe of known keys.
 // returns nil if all keys in kv are in universe.
+// Any entry in universe that ends in * is treated as a wildcard
 func (kv KeyVal) Unknown(universe string) (novel []string) {
 	if universe == "" {
 		return nil
@@ -182,10 +183,19 @@ func (kv KeyVal) Unknown(universe string) (novel []string) {
 	univSlc := strings.Split(universe, ",")
 	for key := range kv {
 		found := false
+
 		for _, uni := range univSlc {
 			if uni == key {
 				found = true
 				break
+			}
+
+			if uni[len(uni)-1] == '*' {
+				shortUni := uni[:len(uni)-1]
+				if len(key) >= len(shortUni) && shortUni == key[:len(shortUni)] {
+					found = true
+					break
+				}
 			}
 		}
 		if !found {
