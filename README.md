@@ -24,3 +24,6 @@ of precedence, in decreasing order, is:
   Duplicates are numbered in the order they are found in the file.
 - Both inline and standalone comments in the keyval file are supported. Comments use the Go // syntax.
 
+There is one special key: include.  The value associated with this key is a file name.  The kevvals from
+that file are loaded when this key is encountered.  Note: keys in this file overwrite any keys already 
+processed in the original file.

@@ -85,6 +85,26 @@ func TestReadKeyVal(t *testing.T) {
 	}
 }
 
+func TestReadKeyVal2(t *testing.T) {
+	dataPath := os.Getenv("data")
+	fileName := dataPath + "/specs4.txt"
+	expKey := []string{"a", "b", "c", "eqn1", "eqn2"}
+	expVal := []string{"A", "B", "C", "a=b", "b=a*2"}
+
+	var kv KeyVal
+	var e error
+
+	if kv, e = ReadKeyVal(fileName); e != nil {
+		panic(e)
+	}
+
+	for ind := 0; ind < len(expKey); ind++ {
+		val, ok := kv[expKey[ind]]
+		assert.Equal(t, ok, true)
+		assert.Equal(t, val.AsString, expVal[ind])
+	}
+}
+
 // TestKeyVal_GetMultiple tests (a) multiple keys and (b) EOF on a populated & blank line.
 func TestKeyVal_GetMultiple(t *testing.T) {
 	dataPath := os.Getenv("data")

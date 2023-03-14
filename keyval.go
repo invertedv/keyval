@@ -302,6 +302,16 @@ func ReadKeyVal(specFile string) (kv KeyVal, err error) {
 
 		// fill in the values.
 		val := Populate(strings.TrimLeft(kvSlice[1], " "))
+		if key == "include" {
+			incKV, e := ReadKeyVal(val.AsString)
+			if e != nil {
+				return nil, e
+			}
+			for k, v := range incKV {
+				kv[k] = v
+			}
+		}
+
 		kv[key] = val
 
 		// OK, we are done.
