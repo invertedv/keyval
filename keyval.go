@@ -24,6 +24,9 @@
 // Duplicates are numbered in the order they are found in the file.
 //
 // - Both inline and standalone comments in the keyval file are supported. Comments use the Go // syntax.
+//
+// There is one special key: include.  The value associated with this key is a file name.  The kevvals from
+// that file are loaded when this key is encountered.
 package keyval
 
 import (
@@ -36,9 +39,9 @@ import (
 )
 
 var (
-	KeyValDelim = ":"  // KeyValDelim is the delimiter that separates the key from the value
-	ListDelim   = ","  // ListDelim separates list (slice) elements in the value.
-	LineEOL     = "\n" // FileEOF is the end-of-line character
+	KVDelim   = ":"  // KVDelim is the delimiter that separates the key from the value
+	ListDelim = ","  // ListDelim separates list (slice) elements in the value.
+	LineEOL   = "\n" // FileEOF is the end-of-line character
 )
 
 // DataType is used to identify the "best" data type of the value.  The decreasing order of precedence is:
@@ -206,19 +209,16 @@ func (kv KeyVal) Unknown(universe string) (novel []string) {
 	return novel
 }
 
-// ReadKeyVal reads the keyval file and returns the map representation.
-// The Value struct is populated with all legitimate representations of value.
-// The elements of Value are set for all types the value can be converted to.  The AsString field is always populated.
-// The BestType is set using the order of precedence described under the type DataType.
-func ReadKeyVal(specFile string) (kv KeyVal, err error) {
+// ReadKV2Slc reads the specFile and returns the key/vals as two slices of strings.
+// These can be processed into a KeyVal by ProcessKVs.
+func ReadKV2Slc(specFile string) (keys, vals []string, err error) {
 	handle, e := os.Open(specFile)
 	if e != nil {
-		return nil, e
+		return nil, nil, e
 	}
 	defer func() { _ = handle.Close() }()
 
 	rdr := bufio.NewReader(handle)
-	kv = make(KeyVal)
 
 	// must keep track of multiple lines since values can occupy multiple lines.
 	line, nextLine := "", ""
@@ -238,7 +238,7 @@ func ReadKeyVal(specFile string) (kv KeyVal, err error) {
 
 			// hit an actual error
 			if e != nil && e != io.EOF {
-				return nil, e
+				return nil, nil, e
 			}
 
 			line = strings.TrimLeft(strings.TrimRight(line, LineEOL), " ")
@@ -260,7 +260,7 @@ func ReadKeyVal(specFile string) (kv KeyVal, err error) {
 			}
 
 			// are these separate entries?
-			if strings.Contains(nextLine, KeyValDelim) && strings.Contains(line, KeyValDelim) {
+			if strings.Contains(nextLine, KVDelim) && strings.Contains(line, KVDelim) {
 				break
 			}
 
@@ -269,13 +269,55 @@ func ReadKeyVal(specFile string) (kv KeyVal, err error) {
 		}
 
 		// split into key and val
-		kvSlice := strings.SplitN(nextLine, KeyValDelim, 2)
+		kvSlice := strings.SplitN(nextLine, KVDelim, 2)
 		if len(kvSlice) != 2 {
-			return nil, fmt.Errorf("bad key val: %s in file %s", nextLine, specFile)
+			return nil, nil, fmt.Errorf("bad key val: %s in file %s", nextLine, specFile)
 		}
 
+		key := strings.ReplaceAll(kvSlice[0], " ", "")
+		val := strings.TrimLeft(kvSlice[1], " ")
+		if key == "include" {
+			ks, vs, e := ReadKV2Slc(val)
+			if e != nil {
+				return nil, nil, e
+			}
+
+			for ind := 0; ind < len(ks); ind++ {
+				keys = append(keys, ks[ind])
+				vals = append(vals, vs[ind])
+			}
+
+			continue
+		}
+
+		keys = append(keys, key)
+		vals = append(vals, val)
+
+		if done == 2 {
+			return keys, vals, nil
+		}
+
+		// The next iteration will be the last.  We won't do any more reading if done=1.
+		if done == 1 {
+			done++
+		}
+	}
+}
+
+// ProcessKVs process keys and vals as two slices of string.  It returns a KeyVal.
+func ProcessKVs(keys, vals []string) (kv KeyVal, err error) {
+	if keys == nil || vals == nil {
+		return nil, fmt.Errorf("nil slice passes to ProcessKVs")
+	}
+
+	if len(keys) != len(vals) {
+		return nil, fmt.Errorf("slices not same length in ProcessKVs")
+	}
+
+	kv = make(KeyVal)
+	for indx := 0; indx < len(keys); indx++ {
 		// spaces mean nothing
-		base := strings.ReplaceAll(kvSlice[0], " ", "")
+		base := keys[indx]
 
 		// now we test to see if this key is a duplicate
 		key, keyTest := base, base
@@ -300,32 +342,20 @@ func ReadKeyVal(specFile string) (kv KeyVal, err error) {
 			delete(kv, base)
 		}
 
-		// fill in the values.
-		val := Populate(strings.TrimLeft(kvSlice[1], " "))
-		if key == "include" {
-			incKV, e := ReadKeyVal(val.AsString)
-			if e != nil {
-				return nil, e
-			}
-			for k, v := range incKV {
-				kv[k] = v
-			}
-		}
-
-		kv[key] = val
-
-		// OK, we are done.
-		if done == 2 {
-			break
-		}
-
-		// The next iteration will be the last.  We won't do any more reading if done=1.
-		if done == 1 {
-			done++
-		}
+		kv[key] = Populate(vals[indx])
 	}
 
 	return kv, nil
+}
+
+// ReadKV reads a key/val set from specFile and returns KeyVal
+func ReadKV(specFile string) (keyval KeyVal, err error) {
+	keys, vals, e := ReadKV2Slc(specFile)
+	if e != nil {
+		return keyval, e
+	}
+
+	return ProcessKVs(keys, vals)
 }
 
 // Populate populates all the legal values that valStr can accommodate.  The AsString field is always populated.

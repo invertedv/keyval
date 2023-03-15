@@ -1,5 +1,5 @@
 a: A
 b: B
-eqn1: replaced
+eqn: pi=3.14159
 include: /home/will/GolandProjects/keyval/data/specs2.txt
 c: C

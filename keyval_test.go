@@ -15,12 +15,21 @@ func TestKeyVal_Present(t *testing.T) {
 	expKey := "a,b,X,Y,d"
 	expPresent := []string{"a", "b", "d"}
 
-	var kv KeyVal
-	var e error
+	var (
+		key, val []string
+		kv       KeyVal
+		e        error
+	)
 
-	if kv, e = ReadKeyVal(fileName); e != nil {
+	if key, val, e = ReadKV2Slc(fileName); e != nil {
 		panic(e)
 	}
+
+	kv, e = ProcessKVs(key, val)
+	if e != nil {
+		panic(e)
+	}
+
 	missing := kv.Present(expKey)
 	assert.ElementsMatch(t, missing, expPresent)
 
@@ -36,12 +45,16 @@ func TestKeyVal_Missing(t *testing.T) {
 	expKey := "a,b,X,Y,d"
 	expMiss := []string{"X", "Y"}
 
-	var kv KeyVal
-	var e error
+	var (
+		kv KeyVal
+		e  error
+	)
 
-	if kv, e = ReadKeyVal(fileName); e != nil {
+	kv, e = ReadKV(fileName)
+	if e != nil {
 		panic(e)
 	}
+
 	missing := kv.Missing(expKey)
 	assert.ElementsMatch(t, missing, expMiss)
 
@@ -56,12 +69,21 @@ func TestKeyVal_Unknown(t *testing.T) {
 	univ := "a,b,c"
 	expUnk := []string{"d", "e", "f"}
 
-	var kv KeyVal
-	var e error
+	var (
+		key, val []string
+		kv       KeyVal
+		e        error
+	)
 
-	if kv, e = ReadKeyVal(fileName); e != nil {
+	if key, val, e = ReadKV2Slc(fileName); e != nil {
 		panic(e)
 	}
+
+	kv, e = ProcessKVs(key, val)
+	if e != nil {
+		panic(e)
+	}
+
 	unk := kv.Unknown(univ)
 	assert.ElementsMatch(t, unk, expUnk)
 }
@@ -73,10 +95,18 @@ func TestReadKeyVal(t *testing.T) {
 	exp := []DataType{String, SliceStr, Int, Float, SliceInt, SliceFloat}
 	expKey := []string{"a", "b", "c", "d", "e", "f"}
 
-	var kv KeyVal
-	var e error
+	var (
+		key, val []string
+		kv       KeyVal
+		e        error
+	)
 
-	if kv, e = ReadKeyVal(fileName); e != nil {
+	if key, val, e = ReadKV2Slc(fileName); e != nil {
+		panic(e)
+	}
+
+	kv, e = ProcessKVs(key, val)
+	if e != nil {
 		panic(e)
 	}
 
@@ -89,19 +119,27 @@ func TestReadKeyVal2(t *testing.T) {
 	dataPath := os.Getenv("data")
 	fileName := dataPath + "/specs4.txt"
 	expKey := []string{"a", "b", "c", "eqn1", "eqn2"}
-	expVal := []string{"A", "B", "C", "a=b", "b=a*2"}
+	expVal := []string{"A", "B", "C", "pi=3.14159", "a=b"}
 
-	var kv KeyVal
-	var e error
+	var (
+		key, val []string
+		kv       KeyVal
+		e        error
+	)
 
-	if kv, e = ReadKeyVal(fileName); e != nil {
+	if key, val, e = ReadKV2Slc(fileName); e != nil {
+		panic(e)
+	}
+
+	kv, e = ProcessKVs(key, val)
+	if e != nil {
 		panic(e)
 	}
 
 	for ind := 0; ind < len(expKey); ind++ {
-		val, ok := kv[expKey[ind]]
+		valx, ok := kv[expKey[ind]]
 		assert.Equal(t, ok, true)
-		assert.Equal(t, val.AsString, expVal[ind])
+		assert.Equal(t, valx.AsString, expVal[ind])
 	}
 }
 
@@ -113,10 +151,17 @@ func TestKeyVal_GetMultiple(t *testing.T) {
 	for ind := 2; ind < 4; ind++ {
 		fileName := fmt.Sprintf("%s/specs%d.txt", dataPath, ind)
 
-		var kv KeyVal
-		var e error
+		var (
+			key, val []string
+			kv       KeyVal
+			e        error
+		)
 
-		kv, e = ReadKeyVal(fileName)
+		if key, val, e = ReadKV2Slc(fileName); e != nil {
+			panic(e)
+		}
+
+		kv, e = ProcessKVs(key, val)
 		if e != nil {
 			panic(e)
 		}
@@ -128,11 +173,22 @@ func TestKeyVal_GetMultiple(t *testing.T) {
 }
 
 // This example shows the result of reading the specs1.txt file located in the data directory of this package.
-func ExampleReadKeyVal() {
+func ExampleReadKV2Slc() {
 	dataPath := os.Getenv("data")
 	fileName := dataPath + "/specs1.txt"
 
-	kv, e := ReadKeyVal(fileName)
+	var (
+		key, val []string
+		kv       KeyVal
+		e        error
+	)
+
+	// instead of these statements, we could use ReadKV(fileName)
+	if key, val, e = ReadKV2Slc(fileName); e != nil {
+		panic(e)
+	}
+
+	kv, e = ProcessKVs(key, val)
 	if e != nil {
 		panic(e)
 	}
