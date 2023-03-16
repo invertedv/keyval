@@ -122,6 +122,10 @@ func (kv KeyVal) GetBest(key string) (data any, datatype DataType) {
 func (kv KeyVal) GetMultiple(root string) []*Value {
 	val := kv[root+"1"]
 	if val == nil {
+		if val = kv[root]; val != nil {
+			return []*Value{val}
+		}
+
 		return nil
 	}
 
