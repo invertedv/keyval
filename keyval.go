@@ -381,11 +381,15 @@ func Populate(valStr string) *Value {
 
 	if slcS, slcI, slcF := toSlices(valStr); slcS != nil {
 		val.AsSliceS, val.AsSliceI, val.AsSliceF = slcS, slcI, slcF
-		val.BestType = SliceStr
-		if val.AsSliceF != nil {
+		if len(slcS) > 1 {
+			val.BestType = SliceStr
+		}
+
+		if val.AsSliceF != nil && len(slcF) > 1 {
 			val.BestType = SliceFloat
 		}
-		if val.AsSliceI != nil {
+
+		if val.AsSliceI != nil && len(slcI) > 1 {
 			val.BestType = SliceInt
 		}
 	}
@@ -397,28 +401,24 @@ func Populate(valStr string) *Value {
 func toSlices(input string) (asStr []string, asInt []int, asFloat []float64) {
 	asStr = strings.Split(strings.ReplaceAll(input, " ", ""), ListDelim)
 
-	if len(asStr) > 1 {
-		asInt = make([]int, 0)
-		asFloat = make([]float64, 0)
-		for ind := 0; ind < len(asStr); ind++ {
-			if val, e := strconv.ParseInt(asStr[ind], 10, 64); e == nil {
-				asInt = append(asInt, int(val))
-			}
-			if val, e := strconv.ParseFloat(asStr[ind], 64); e == nil {
-				asFloat = append(asFloat, val)
-			}
+	asInt = make([]int, 0)
+	asFloat = make([]float64, 0)
+	for ind := 0; ind < len(asStr); ind++ {
+		if val, e := strconv.ParseInt(asStr[ind], 10, 64); e == nil {
+			asInt = append(asInt, int(val))
 		}
-
-		if len(asInt) != len(asStr) {
-			asInt = nil
+		if val, e := strconv.ParseFloat(asStr[ind], 64); e == nil {
+			asFloat = append(asFloat, val)
 		}
-
-		if len(asFloat) != len(asStr) {
-			asFloat = nil
-		}
-
-		return asStr, asInt, asFloat
 	}
 
-	return nil, nil, nil
+	if len(asInt) != len(asStr) {
+		asInt = nil
+	}
+
+	if len(asFloat) != len(asStr) {
+		asFloat = nil
+	}
+
+	return asStr, asInt, asFloat
 }

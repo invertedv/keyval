@@ -215,6 +215,7 @@ func ExampleReadKV2Slc() {
 	// output:
 	// a
 	// string:  hello
+	// slice:  [hello]
 	// best:  String
 	//
 	// b
@@ -226,11 +227,13 @@ func ExampleReadKV2Slc() {
 	// string:  1
 	// int:  1
 	// float:  1
+	// slice:  [1]
 	// best:  Int
 	//
 	// d
 	// string:  3.2
 	// float:  3.2
+	// slice:  [3.2]
 	// best:  Float
 	//
 	// e
