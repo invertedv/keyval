@@ -172,6 +172,16 @@ func TestKeyVal_GetMultiple(t *testing.T) {
 	}
 }
 
+func TestCleanString(t *testing.T) {
+	inStrs := []string{"he llo", "good\nbye"}
+	outStrs := []string{"hello", "goodbye"}
+
+	for ind, inStr := range inStrs {
+		outStr := CleanString(inStr, " \n\t")
+		assert.Equal(t, outStrs[ind], outStr)
+	}
+}
+
 // This example shows the result of reading the specs1.txt file located in the data directory of this package.
 func ExampleReadKV2Slc() {
 	dataPath := os.Getenv("data")

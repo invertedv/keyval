@@ -150,6 +150,7 @@ func (kv KeyVal) Missing(needles string) (missing []string) {
 		return nil
 	}
 
+	needles = CleanString(needles, " \n\t")
 	for _, miss := range strings.Split(needles, ",") {
 		if kv.Get(miss) == nil {
 			missing = append(missing, miss)
@@ -165,7 +166,7 @@ func (kv KeyVal) Present(needles string) (present []string) {
 		return nil
 	}
 
-	needles = strings.ReplaceAll(strings.ReplaceAll(needles, " ", ""), "\n", "")
+	needles = CleanString(needles, " \n\t")
 	for _, ndl := range strings.Split(needles, ",") {
 		if kv.Get(ndl) != nil {
 			present = append(present, ndl)
@@ -185,7 +186,7 @@ func (kv KeyVal) Unknown(universe string) (novel []string) {
 	}
 
 	// remove potential dreck
-	universe = strings.ReplaceAll(strings.ReplaceAll(universe, " ", ""), "\n", "")
+	universe = CleanString(universe, " \n\t")
 
 	univSlc := strings.Split(universe, ",")
 	for key := range kv {
@@ -399,7 +400,7 @@ func Populate(valStr string) *Value {
 
 // toSlices converts input into all the slice types it supports.
 func toSlices(input string) (asStr []string, asInt []int, asFloat []float64) {
-	asStr = strings.Split(strings.ReplaceAll(input, " ", ""), ListDelim)
+	asStr = strings.Split(CleanString(input, " "), ListDelim)
 
 	asInt = make([]int, 0)
 	asFloat = make([]float64, 0)
@@ -421,4 +422,13 @@ func toSlices(input string) (asStr []string, asInt []int, asFloat []float64) {
 	}
 
 	return asStr, asInt, asFloat
+}
+
+// CleanString removes all the characters in cutSet from str
+func CleanString(str, cutSet string) string {
+	for ind := 0; ind < len(cutSet); ind++ {
+		str = strings.ReplaceAll(str, cutSet[ind:ind+1], "")
+	}
+
+	return str
 }
