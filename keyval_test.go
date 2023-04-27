@@ -256,3 +256,67 @@ func ExampleReadKV2Slc() {
 	// slice:  [1.1 3 4 5 8.9]
 	// best:  SliceFloat
 }
+
+// This example shows how to check a keyval passes QA.
+func ExampleCheckLegals() {
+	// legalDefs defines a universe of 4 keys.
+	// The presence of other keys will cause an error.
+	// If key1 or key2 must be there.
+	// If key3 is there, then key4 must also be there.
+	// keys must be of type int.
+	// key2 may have multiple entries, but the others may not.
+	const legalDefs = `
+key1:required-yes
+key1:type-string
+key1:values-yes,no
+
+key2:required-yes
+key2:type-string
+key2:multiple-yes
+
+key3:required-no
+key3:type-int
+key3:requires-key4
+
+key4:required-no
+key4:type-string`
+
+	keys := []string{"key1", "key2", "key2", "key3", "key4"}
+	vals := []string{"yes", "first", "second", "42", "meaning"}
+
+	// After processing, key2 will be represented as key21 and key22.
+	keyval, err := ProcessKVs(keys, vals)
+	if err != nil {
+		panic(err)
+	}
+
+	if e := CheckLegals(keyval, legalDefs); e != nil {
+		panic(e)
+	}
+
+	fmt.Println("everything is good")
+
+	// let's see what a type error looks like.
+	keyval["key3"] = Populate("oh oh")
+	if e := CheckLegals(keyval, legalDefs); e != nil {
+		fmt.Println(e)
+	}
+
+	keyval["key3"] = Populate("42")
+	delete(keyval, "key4")
+	if e := CheckLegals(keyval, legalDefs); e != nil {
+		fmt.Println(e)
+	}
+
+	keyval["key4"] = Populate("I'm back")
+	keyval["key5"] = Populate("I'm extra")
+
+	if e := CheckLegals(keyval, legalDefs); e != nil {
+		fmt.Println(e)
+	}
+	// output:
+	// everything is good
+	// value to key key3 must be integer
+	// missing required key key4
+	// unknown key(s): [key5]
+}

@@ -1,6 +1,6 @@
 ## package keyval
 
-The keyval package provides a convenient method for reading files that have a keyval format.
+The keyval package provides a convenient method handling data in a key/value format.
 
 Features of the keyval file format:
 
@@ -25,4 +25,7 @@ of precedence, in decreasing order, is:
 - Both inline and standalone comments in the keyval file are supported. Comments use the Go // syntax.
 
 There is one special key: include.  The value associated with this key is a file name.  The kevvals from
-that file are loaded when this key is encountered.  
+that file are loaded when this key is encountered.
+
+There are functions to see if required keys are present and whether extra keys are present.
+There is also a validation function: CheckLegals.  

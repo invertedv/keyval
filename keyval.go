@@ -1,4 +1,4 @@
-// Package keyval provides a convenient method for reading files that have a keyval format.
+// Package keyval provides a convenient method handling data in a key/value format.
 //
 // Features of the keyval file format:
 //
@@ -27,6 +27,9 @@
 //
 // There is one special key: include.  The value associated with this key is a file name.  The kevvals from
 // that file are loaded when this key is encountered.
+//
+// There are functions to see if required keys are present and whether extra keys are present.
+// There is also a validation function: CheckLegals.
 package keyval
 
 import (
@@ -152,7 +155,7 @@ func (kv KeyVal) Missing(needles string) (missing []string) {
 
 	needles = CleanString(needles, " \n\t")
 	for _, miss := range strings.Split(needles, ",") {
-		if kv.Get(miss) == nil {
+		if kv.Get(miss) == nil && kv.GetMultiple(miss) == nil {
 			missing = append(missing, miss)
 		}
 	}
@@ -501,7 +504,7 @@ func CheckLegals(kv KeyVal, legalKeys string) error {
 	for k, v := range kv {
 		if vType := getLgl(k, "type", kl, fl, vl); vType == "int" {
 			if v.AsInt == nil {
-				return fmt.Errorf("value to key %s must be integer in analysis %s", k, kv["analysis"].AsString)
+				return fmt.Errorf("value to key %s must be integer", k)
 			}
 		}
 
@@ -514,8 +517,8 @@ func CheckLegals(kv KeyVal, legalKeys string) error {
 
 		// see if another key is required
 		if requires := getLgl(k, "requires", kl, fl, vl); requires != "" {
-			if _, ok := kv[requires]; !ok {
-				return fmt.Errorf("missing required key %s in analysis %s", requires, kv["analysis"].AsString)
+			if kv.Missing(requires) != nil {
+				return fmt.Errorf("missing required key %s", requires)
 			}
 		}
 	}
