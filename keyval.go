@@ -432,3 +432,104 @@ func CleanString(str, cutSet string) string {
 
 	return str
 }
+
+// BuildLegals takes the string in legal.txt returning 3 slices. The first is the target key,
+// the second is a category and the third is the value.
+// The format for the string is:
+// key:required-<yes/no>
+// key:type-<string/int/float>
+// key:multiples-<yes/no>
+// key:requires-<another key name>
+//
+// Only the first two are required.
+func BuildLegals(legalKeys string) (keys, field, val []string) {
+	for _, lgl := range strings.Split(legalKeys, "\n") {
+		if lgl == "" {
+			continue
+		}
+
+		kv := strings.Split(lgl, ":")
+		keys = append(keys, kv[0])
+		fv := strings.Split(kv[1], "-")
+		field = append(field, fv[0])
+		val = append(val, fv[1])
+	}
+
+	return keys, field, val
+}
+
+// getLgl returns the value from the key/field/value triple in keys/legal.txt
+func getLgl(key, field string, kl, fl, vl []string) (val string) {
+	for ind := 0; ind < len(kl); ind++ {
+		if kl[ind] == key && fl[ind] == field {
+			return vl[ind]
+		}
+	}
+
+	return ""
+}
+
+// CheckLegals builds the legal keys, types and "required" then checks kv against this.
+func CheckLegals(kv KeyVal, legalKeys string) error {
+	kl, fl, vl := BuildLegals(legalKeys)
+
+	// keys that admit duplicates need a * appended to their names
+	var unique []string
+	for ind, k := range kl {
+		if fl[ind] == "required" {
+			keyn := k
+			if getLgl(k, "multiple", kl, fl, vl) == "yes" {
+				keyn += "*"
+			}
+			unique = append(unique, keyn)
+		}
+	}
+
+	// look for unrecognized keys
+	if unks := kv.Unknown(strings.Join(unique, ",")); unks != nil {
+		return fmt.Errorf("unknown key(s): %v", unks)
+	}
+
+	// required keys
+	for ind, k := range kl {
+		if fl[ind] == "required" && vl[ind] == "yes" && kv.Missing(k) != nil {
+			return fmt.Errorf("missing required key %s", k)
+		}
+	}
+
+	// cycle through and check types and required secondary keys
+	for k, v := range kv {
+		if vType := getLgl(k, "type", kl, fl, vl); vType == "int" {
+			if v.AsInt == nil {
+				return fmt.Errorf("value to key %s must be integer in analysis %s", k, kv["analysis"].AsString)
+			}
+		}
+
+		// see if there is a list of legal values
+		if vals := getLgl(k, "values", kl, fl, vl); vals != "" {
+			if searchSlice(v.AsString, strings.Split(vals, ",")) < 0 {
+				return fmt.Errorf("illegal value %s for key %s", v.AsString, k)
+			}
+		}
+
+		// see if another key is required
+		if requires := getLgl(k, "requires", kl, fl, vl); requires != "" {
+			if _, ok := kv[requires]; !ok {
+				return fmt.Errorf("missing required key %s in analysis %s", requires, kv["analysis"].AsString)
+			}
+		}
+	}
+
+	return nil
+}
+
+// searchSlice checks the joinField is present in the Pipeline
+func searchSlice(needle string, haystack []string) (loc int) {
+	for ind, hay := range haystack {
+		if needle == hay {
+			return ind
+		}
+	}
+
+	return -1
+}
