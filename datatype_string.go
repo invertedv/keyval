@@ -11,15 +11,17 @@ func _() {
 	_ = x[String-0]
 	_ = x[Float-1]
 	_ = x[Int-2]
-	_ = x[SliceStr-3]
-	_ = x[SliceFloat-4]
-	_ = x[SliceInt-5]
-	_ = x[InValid-6]
+	_ = x[Date-3]
+	_ = x[SliceStr-4]
+	_ = x[SliceFloat-5]
+	_ = x[SliceInt-6]
+	_ = x[SliceDate-7]
+	_ = x[InValid-8]
 }
 
-const _DataType_name = "StringFloatIntSliceStrSliceFloatSliceIntInValid"
+const _DataType_name = "StringFloatIntDateSliceStrSliceFloatSliceIntSliceDateInValid"
 
-var _DataType_index = [...]uint8{0, 6, 11, 14, 22, 32, 40, 47}
+var _DataType_index = [...]uint8{0, 6, 11, 14, 18, 26, 36, 44, 53, 60}
 
 func (i DataType) String() string {
 	if i < 0 || i >= DataType(len(_DataType_index)-1) {

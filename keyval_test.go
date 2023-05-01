@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -179,6 +180,52 @@ func TestCleanString(t *testing.T) {
 	for ind, inStr := range inStrs {
 		outStr := CleanString(inStr, " \n\t")
 		assert.Equal(t, outStrs[ind], outStr)
+	}
+}
+
+func TestKeyVal_GetBest(t *testing.T) {
+	ListDelim = "|"
+	inKeys := []string{"key0", "key1", "key2", "key3", "key4", "key5", "key6", "key7"}
+	inVals := []string{
+		"42",
+		"3.14",
+		"1|2|3|4",
+		"1|2|3.3|5",
+		"hello",
+		"hello| goodbye",
+		"20231015",
+		"20220901| 9/2/2022| Sep 1, 2002",
+	}
+
+	exp := []DataType{Int, Float, SliceInt, SliceFloat, String, SliceStr, Date, SliceDate}
+
+	kv, err := ProcessKVs(inKeys, inVals)
+	assert.Nil(t, err)
+
+	for ind, ex := range exp {
+		_, act := kv.GetBest(fmt.Sprintf("key%d", ind))
+		assert.Equal(t, act, ex)
+	}
+}
+
+func TestPopulate(t *testing.T) {
+	inDts := []string{"12/31/2020", "20211001", "1/10/1995", "mar 15, 2019", "October 20, 2010"}
+
+	exp := []time.Time{time.Date(2020, 12, 31, 0, 0, 0, 0, time.UTC),
+		time.Date(2021, 10, 1, 0, 0, 0, 0, time.UTC),
+		time.Date(1995, 1, 10, 0, 0, 0, 0, time.UTC),
+		time.Date(2019, 3, 15, 0, 0, 0, 0, time.UTC),
+		time.Date(2010, 10, 20, 0, 0, 0, 0, time.UTC),
+	}
+
+	for ind, dtStr := range inDts {
+		dt := toDate(dtStr)
+		assert.Equal(t, exp[ind], *dt)
+	}
+
+	nils := []string{"fail", "febuary 10, 2015"}
+	for _, n := range nils {
+		assert.Nil(t, toDate(n))
 	}
 }
 

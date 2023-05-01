@@ -1,35 +1,56 @@
 // Package keyval provides a convenient method handling data in a key/value format.
 //
-// Features of the keyval file format:
+// # Features of the keyval package
 //
-// - The file is loaded into a map.
-// - keyvals can cross multiple lines.
-// - Results are stored in a struct that converts the values into a variety of types:
+// The package revolves around the Keyval map which maps the keys to the values. The map can be created by
+// reading the keyvals from a file or from two slices of strings, one being keys the other values.
+// The file format has the form:
+//
+//	<key>: <value(s)>
+//
+// When reading from a file, values can cross multiple lines in the file.
+// Both inline and standalone comments in the keyval file are supported. Comments use the Go // syntax.
+//
+// Values are stored in a struct that converts the value(s) into all the types the value supports. These can be:
 //   - string
 //   - int
 //   - float64
+//   - date (time.Time)
 //   - []string
 //   - []int
 //   - []float64
+//   - []time.Time
 //
-// - The struct includes a BestType field that is the best type the value can be.  The order of
-// precedence, in decreasing order, is:
+// The struct includes a BestType field that is the "best" type
+// the value can be.  The order of precedence, in decreasing order, is:
+//   - date (time.Time)
 //   - int
 //   - float64
 //   - string
 //
-// Slices take precedence over unary types.
+// Note that slices take precedence over unary types.
 //
-// - Duplicate keys are allowed. If duplicates are detected, a "count" is appended to the key, starting with "1".
+// Duplicate keys are allowed. If duplicates are detected, a "count" is appended to the key, starting with "1".
 // Duplicates are numbered in the order they are found in the file.
+// The above can cause problems if you intend to have "key", "key" *and* another key called "key1" -- so beware.
 //
-// - Both inline and standalone comments in the keyval file are supported. Comments use the Go // syntax.
+// If the value can be parsed as a slice, leading and trailing spaces are removed after the string is split into a slice.
+// The default delimiter for slices is ",". If you have dates like "January 2, 2000", you'll need to change it
+// to something else.
 //
 // There is one special key: include.  The value associated with this key is a file name.  The kevvals from
-// that file are loaded when this key is encountered.
+// the specified file are loaded when the "include" key is encountered.
 //
-// There are functions to see if required keys are present and whether extra keys are present.
-// There is also a validation function: CheckLegals.
+// There are functions to check whether required keys are present and whether extra keys are present.
+// There is also a validation function: CheckLegals.  See the example.
+//
+// Date formats that are accepted are:
+//
+//	"20060102"
+//	"01/02/2006"
+//	"1/2/2006"
+//	"January 2, 2006"
+//	"Jan 2, 2006"
 package keyval
 
 import (
@@ -39,6 +60,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 )
 
 var (
@@ -61,9 +83,11 @@ const (
 	String DataType = 0 + iota
 	Float
 	Int
+	Date
 	SliceStr
 	SliceFloat
 	SliceInt
+	SliceDate
 	InValid
 )
 
@@ -74,9 +98,11 @@ type Value struct {
 	AsString string
 	AsInt    *int
 	AsFloat  *float64
+	AsDate   *time.Time
 	AsSliceS []string
 	AsSliceI []int
 	AsSliceF []float64
+	AsSliceD []time.Time
 	BestType DataType
 }
 
@@ -109,12 +135,16 @@ func (kv KeyVal) GetBest(key string) (data any, datatype DataType) {
 		return val.AsFloat, Float
 	case Int:
 		return val.AsInt, Int
+	case Date:
+		return val.AsDate, Date
 	case SliceStr:
 		return val.AsSliceS, SliceStr
 	case SliceFloat:
 		return val.AsSliceF, SliceFloat
 	case SliceInt:
 		return val.AsSliceI, SliceInt
+	case SliceDate:
+		return val.AsSliceD, SliceDate
 	}
 
 	return nil, InValid
@@ -170,7 +200,7 @@ func (kv KeyVal) Present(needles string) (present []string) {
 	}
 
 	needles = CleanString(needles, " \n\t")
-	for _, ndl := range strings.Split(needles, ",") {
+	for _, ndl := range strings.Split(needles, ListDelim) {
 		if kv.Get(ndl) != nil {
 			present = append(present, ndl)
 		}
@@ -366,6 +396,20 @@ func ReadKV(specFile string) (keyval KeyVal, err error) {
 	return ProcessKVs(keys, vals)
 }
 
+// toDate attempts to converte inStr to time.Time
+func toDate(inStr string) *time.Time {
+	fmts := []string{"20060102", "01/02/2006", "1/2/2006", "Jan 2, 2006", "January 2, 2006"}
+
+	for _, fm := range fmts {
+		dt, err := time.Parse(fm, inStr)
+		if err == nil {
+			return &dt
+		}
+	}
+
+	return nil
+}
+
 // Populate populates all the legal values that valStr can accommodate.  The AsString field is always populated.
 // The BestType is set using the order of precedence described under the type DataType.
 func Populate(valStr string) *Value {
@@ -383,18 +427,28 @@ func Populate(valStr string) *Value {
 		val.BestType = Int
 	}
 
-	if slcS, slcI, slcF := toSlices(valStr); slcS != nil {
-		val.AsSliceS, val.AsSliceI, val.AsSliceF = slcS, slcI, slcF
+	if valDt := toDate(valStr); valDt != nil {
+		val.AsDate = valDt
+		val.BestType = Date
+	}
+
+	if slcS, slcI, slcF, slcD := toSlices(valStr); slcS != nil {
+		val.AsSliceS, val.AsSliceI, val.AsSliceF, val.AsSliceD = slcS, slcI, slcF, slcD
 		if len(slcS) > 1 {
 			val.BestType = SliceStr
 		}
 
-		if val.AsSliceF != nil && len(slcF) > 1 {
+		// check slice has more than one element to call it the best choice
+		if len(slcF) > 1 {
 			val.BestType = SliceFloat
 		}
 
-		if val.AsSliceI != nil && len(slcI) > 1 {
+		if len(slcI) > 1 {
 			val.BestType = SliceInt
+		}
+
+		if len(slcD) > 1 {
+			val.BestType = SliceDate
 		}
 	}
 
@@ -402,17 +456,27 @@ func Populate(valStr string) *Value {
 }
 
 // toSlices converts input into all the slice types it supports.
-func toSlices(input string) (asStr []string, asInt []int, asFloat []float64) {
-	asStr = strings.Split(CleanString(input, " "), ListDelim)
+func toSlices(input string) (asStr []string, asInt []int, asFloat []float64, asDate []time.Time) {
+	asStr = strings.Split(input, ListDelim)
+	// after split, trim off leading/trailing spaces
+	for ind, str := range asStr {
+		asStr[ind] = strings.TrimRight(strings.TrimLeft(str, " "), " ")
+	}
 
 	asInt = make([]int, 0)
 	asFloat = make([]float64, 0)
+	asDate = make([]time.Time, 0)
+
 	for ind := 0; ind < len(asStr); ind++ {
 		if val, e := strconv.ParseInt(asStr[ind], 10, 64); e == nil {
 			asInt = append(asInt, int(val))
 		}
 		if val, e := strconv.ParseFloat(asStr[ind], 64); e == nil {
 			asFloat = append(asFloat, val)
+		}
+
+		if val := toDate(asStr[ind]); val != nil {
+			asDate = append(asDate, *val)
 		}
 	}
 
@@ -424,7 +488,11 @@ func toSlices(input string) (asStr []string, asInt []int, asFloat []float64) {
 		asFloat = nil
 	}
 
-	return asStr, asInt, asFloat
+	if len(asDate) != len(asStr) {
+		asDate = nil
+	}
+
+	return asStr, asInt, asFloat, asDate
 }
 
 // CleanString removes all the characters in cutSet from str
