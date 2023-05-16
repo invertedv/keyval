@@ -541,6 +541,12 @@ func getLgl(key, field string, kl, fl, vl []string) (val string) {
 }
 
 // CheckLegals builds the legal keys, types and "required" then checks kv against this.
+// CheckLegals returns the first error it finds in this order:
+//   - missing required key
+//   - bad value
+//   - unknown keys
+//
+// If you don't care about extra keys, you can just ignore the last error.
 func CheckLegals(kv KeyVal, legalKeys string) error {
 	kl, fl, vl := BuildLegals(legalKeys)
 
@@ -554,11 +560,6 @@ func CheckLegals(kv KeyVal, legalKeys string) error {
 			}
 			unique = append(unique, keyn)
 		}
-	}
-
-	// look for unrecognized keys
-	if unks := kv.Unknown(strings.Join(unique, ",")); unks != nil {
-		return fmt.Errorf("unknown key(s): %v", unks)
 	}
 
 	// required keys
@@ -589,6 +590,11 @@ func CheckLegals(kv KeyVal, legalKeys string) error {
 				return fmt.Errorf("missing required key %s", requires)
 			}
 		}
+	}
+
+	// look for unrecognized keys
+	if unks := kv.Unknown(strings.Join(unique, ",")); unks != nil {
+		return fmt.Errorf("unknown key(s): %v", unks)
 	}
 
 	return nil
