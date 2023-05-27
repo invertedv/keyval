@@ -401,7 +401,7 @@ func toDate(inStr string) *time.Time {
 	fmts := []string{"20060102", "01/02/2006", "1/2/2006", "Jan 2, 2006", "January 2, 2006"}
 
 	for _, fm := range fmts {
-		dt, err := time.Parse(fm, inStr)
+		dt, err := time.Parse(fm, strings.ReplaceAll(inStr, " ", ""))
 		if err == nil {
 			return &dt
 		}
@@ -415,13 +415,13 @@ func toDate(inStr string) *time.Time {
 func Populate(valStr string) *Value {
 	val := &Value{AsString: valStr, BestType: String}
 
-	if valFloat, e := strconv.ParseFloat(valStr, 64); e == nil {
+	if valFloat, e := strconv.ParseFloat(strings.ReplaceAll(valStr, " ", ""), 64); e == nil {
 		toFloat := valFloat
 		val.AsFloat = &toFloat
 		val.BestType = Float
 	}
 
-	if valInt, e := strconv.ParseInt(valStr, 10, 64); e == nil {
+	if valInt, e := strconv.ParseInt(strings.ReplaceAll(valStr, " ", ""), 10, 64); e == nil {
 		toInt := int(valInt)
 		val.AsInt = &toInt
 		val.BestType = Int
@@ -468,10 +468,10 @@ func toSlices(input string) (asStr []string, asInt []int, asFloat []float64, asD
 	asDate = make([]time.Time, 0)
 
 	for ind := 0; ind < len(asStr); ind++ {
-		if val, e := strconv.ParseInt(asStr[ind], 10, 64); e == nil {
+		if val, e := strconv.ParseInt(strings.ReplaceAll(asStr[ind], " ", ""), 10, 64); e == nil {
 			asInt = append(asInt, int(val))
 		}
-		if val, e := strconv.ParseFloat(asStr[ind], 64); e == nil {
+		if val, e := strconv.ParseFloat(strings.ReplaceAll(asStr[ind], " ", ""), 64); e == nil {
 			asFloat = append(asFloat, val)
 		}
 
