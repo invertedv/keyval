@@ -396,12 +396,14 @@ func ReadKV(specFile string) (keyval KeyVal, err error) {
 	return ProcessKVs(keys, vals)
 }
 
-// toDate attempts to converte inStr to time.Time
+// toDate attempts to convert inStr to time.Time
 func toDate(inStr string) *time.Time {
-	fmts := []string{"20060102", "01/02/2006", "1/2/2006", "Jan 2, 2006", "January 2, 2006"}
-
+	fmts := []string{"2006-01-02", "2006-1-2", "2006/01/02", "2006/1/2", "20060102", "01022006",
+		"01/02/2006", "1/2/2006", "01-02-2006", "1-2-2006", "200601", "Jan 2 2006", "January 2 2006",
+		"Jan 2, 2006", "January 2, 2006", time.RFC3339}
+	trim := strings.TrimRight(strings.TrimLeft(inStr, " "), " ")
 	for _, fm := range fmts {
-		dt, err := time.Parse(fm, strings.ReplaceAll(inStr, " ", ""))
+		dt, err := time.Parse(fm, trim)
 		if err == nil {
 			return &dt
 		}

@@ -233,6 +233,7 @@ func TestPopulate(t *testing.T) {
 func ExampleReadKV2Slc() {
 	dataPath := os.Getenv("data")
 	fileName := dataPath + "/specs1.txt"
+	ListDelim = ","
 
 	var (
 		key, val []string
