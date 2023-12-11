@@ -120,6 +120,26 @@ func (kv KeyVal) Get(key string) *Value {
 	return val
 }
 
+// GetMultipleTrim returns a multiple key as a trimmed string slice
+func (kv KeyVal) GetMultipleTrim(root string) []string {
+	var outSlc []string
+	val := kv.GetMultiple(root)
+	for ind := 0; ind < len(val); ind++ {
+		outSlc = append(outSlc, strings.Trim(val[ind].AsString, " "))
+	}
+
+	return outSlc
+}
+
+// GetTrim returns the key as a string with spaces trimmed
+func (kv KeyVal) GetTrim(key string) string {
+	if val := kv.Get(key); val != nil {
+		return strings.Trim(val.AsString, " ")
+	}
+
+	return ""
+}
+
 // GetBest returns the Value element of the BestType along with what that type is.
 func (kv KeyVal) GetBest(key string) (data any, datatype DataType) {
 	val, ok := kv[key]
