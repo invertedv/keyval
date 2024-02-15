@@ -290,8 +290,8 @@ func ReadKV2Slc(specFile string) (keys, vals []string, err error) {
 				done = 1 // hit EOF, so process nextLine and line
 				if line == "" {
 					done = 2 // EOF and the line was blank--so process nextline and quit
+					break
 				}
-				break
 			}
 
 			// hit an actual error
@@ -324,6 +324,9 @@ func ReadKV2Slc(specFile string) (keys, vals []string, err error) {
 
 			// append and keep reading
 			nextLine = fmt.Sprintf("%s %s", nextLine, line)
+			if done == 1 {
+				done = 2
+			}
 		}
 
 		// split into key and val
